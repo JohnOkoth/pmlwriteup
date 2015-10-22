@@ -1,0 +1,97 @@
+<html>
+
+<head>
+<title>Predicting Classe in relation to types of workout.</title>
+</head>
+
+<body>
+
+My analysis for prediciting Classe variable involved extracting the data for Human workout provided by Groupware@less. The data had respective predictor variables for different types of workout. I went through the process of pruning the variables that had a higher amount of missing data, and irrelevant data by creating a function that did the clean up. 
+
+There are two functions that I created, one for cleaning up the data (preprocess) and the other for cleaning and partitioning the data (partition). The partitioned data from "train" generated both the training and testing data, with the randomForest package used to model the training data under the Caret package. I later used the test data to predict the Classe outcome, and performed the degree of accuracy with reference to the Classe variable from the testing data.This was done under the confusionMatrix function. The test data that I uploaded from the prescribed website, served the purpose of predicting the 20 cases as was assigned.
+
+The cross validation generated 25 resamples under the bootstrap method without replacement. The caret function for creating the cross validation, chose the value by default, and under the ressampling process, respective parameters were obtained with the highest value of accuracy estimate chosen under modeling tree number 27.
+
+This model was the best since it gave an accuracy of 99.5%, with an output sample error of 0.06796941% in relation to the function I computed in the R-Code under line 66 and 69 respectively in the .Rmd file.Under the confusionMatrix function, there were only three errors predicted i.e two B's and one C giving proof that the model was robust in predicting Classe.
+
+
+
+<!--begin.rcode
+#Data loading for testing and training data from the respective website
+data_url<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+data_urlt<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(data_url, "pml-training.csv")
+download.file(data_urlt, "pml-testing.csv")
+
+#Data loding to the R environment
+train<-read.csv("pmr-training.csv", na.strings = c("NA",""))
+test<-read.csv("pml-testing.csv", na.strings = c("NA",""))
+
+#Preprocessing function for generating testing data for 20 cases.
+preprocess<-function(data){
+  library(caret)
+  NAs<-sapply(train, function(x) sum(is.na(x)))
+  data1<-data[,which(NAs==0)]
+  removecol<-grep("X|user_name|new_window|timestamp", names(data1))
+  data2<-data1[,-removecol]
+  
+  return(data2)
+  
+}
+#Partition function for cleaning and partioning train data to training and testing.
+partition<-function(data, value){
+  library(caret)
+  NAs<-sapply(train, function(x) sum(is.na(x)))
+  data1<-data[,which(NAs==0)]
+  removecol<-grepl("X|user_name|new_window|timestamp", names(data1))
+  data2<-data1[,-removecol]
+  data3<-createDataPartition(data2$classe, p=.70, list = FALSE)
+  data4<-data2[data3,]
+  data5<-data2[-data3,]
+  
+  return(data4)
+  
+}
+#Processing training data without line 53 in partition function
+training<-partition(train)
+#Processing testing data without line 54 in partition function
+testing<-preprocess(train)
+
+
+#Using the caret function to create the cross validation function for randomForest modeling package
+objcontrol<-trainControl(method = 'cv', number = 5)
+
+#Predicting classe response using the random forest algorithm with training data
+modelFit.rf1<-train(classe~., method="rf", objcontrol=objcontrol, prox=TRUE, data=training)
+print(modelFit.rf1)
+summary(modelFit.rf1)
+
+#predicting the response variable classe using the validtest data
+prediction<-predict(modelFit.rf1,testing)
+#checking the accuracy for the randomForest model
+confusionMatrix(prediction, testing$classe)
+
+#Calculating the accuracy for the prediction
+SampleAccuracy<-sum(prediction==validtest$classe)/length(prediction)
+print(SampleAccuracy)
+#Calculating the sample error
+SampleError<-(1-SampleAccuracy)*100
+print(SampleError)
+
+#Predicting the 20 test cases for submission assignment
+#Preprocess the test data
+tester<-preprocess(test)
+#Predict 20 cases
+tester.predict<-predict(modelFit.rf1, tester)
+print(tester.predict)
+end.rcode-->
+
+<p></p>
+
+<!--begin.rcode fig.width=7, fig.height=6
+#Ranking predictor varaibles importance
+plot(varImp(modelFit.rf1)
+end.rcode-->
+
+</body>
+</html>
