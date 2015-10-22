@@ -1,0 +1,86 @@
+---
+title: Predicting Classe in relation to types of workout
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+#Data loading for testing and training data from the respective website
+data_url<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+data_urlt<-"https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+download.file(data_url, "pml-training.csv")
+download.file(data_urlt, "pml-testing.csv")
+
+#Data loding to the R environment
+train<-read.csv("pmr-training.csv", na.strings = c("NA",""))
+test<-read.csv("pml-testing.csv", na.strings = c("NA",""))
+
+#Preprocessing function for generating testing data for 20 cases.
+preprocess<-function(data){
+  library(caret)
+  NAs<-sapply(train, function(x) sum(is.na(x)))
+  data1<-data[,which(NAs==0)]
+  removecol<-grep("X|user_name|new_window|timestamp", names(data1))
+  data2<-data1[,-removecol]
+  
+  return(data2)
+  
+}
+#Partition function for partioning train data to training and testing.
+partition<-function(data, value){
+  library(caret)
+  NAs<-sapply(train, function(x) sum(is.na(x)))
+  data1<-data[,which(NAs==0)]
+  removecol<-grepl("X|user_name|new_window|timestamp", names(data1))
+  data2<-data1[,-removecol]
+  data3<-createDataPartition(data2$classe, p=.70, list = FALSE)
+  data4<-data2[data3,]
+  data5<-data2[-data3,]
+  
+  return(data4)
+  
+}
+#Processing training data without line 41 in partition function
+training<-partition(train)
+#Processing testing data without line 40 in partition function
+testing<-preprocess(train)
+
+
+#Using the caret function to create the cross validation function for randomForest modeling package
+objcontrol<-trainControl(method = 'cv', number = 5)
+
+#Predicting classe response using the random forest algorithm with training data
+modelFit.rf1<-train(classe~., method="rf", objcontrol=objcontrol, prox=TRUE, data=training)
+print(modelFit.rf1)
+summary(modelFit.rf1)
+
+#predicting the response variable classe using the validtest data
+prediction<-predict(modelFit.rf1,testing)
+#checking the accuracy for the randomForest model
+confusionMatrix(prediction, testing$classe)
+
+#Calculating the accuracy for the prediction
+SampleAccuracy<-sum(prediction==validtest$classe)/length(prediction)
+print(SampleAccuracy)
+#Calculating the sample error
+SampleError<-(1-SampleAccuracy)*100
+print(SampleError)
+
+#Predicting the 20 test cases for submission assignment
+#Preprocess the test data
+tester<-preprocess(test)
+#Predict 20 cases
+tester.predict<-predict(modelFit.rf1, tester)
+print(teterPred)
+```
+
+
+```{r, echo=FALSE}
+#Ranking predictor varaibles importance
+plot(varImp(modelFit.rf1)
+```
+
+
