@@ -3,7 +3,7 @@ title: Predicting "Classe" in relation to types of workout
 output: html_document
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This is a R Markdown document. The R-code is based on the data extraction, cleaning, analysis and modeling with randomForest package under the Caret package for work out data, with prediction of 5 classes under the response variable "classe". The details on the explanation of the modeling process can be found in the following github website JohnOkoth.github.io/pmlwriteup.HTML.
 
 
 
