@@ -1,0 +1,87 @@
+---
+title: "PredictVsObserved"
+output: html_document
+params:
+    File:  c("AgeBound.csv","CreditScoreBound.csv","scoreBound.csv")
+    Coverage: c("COLL","BI","COMP","AB","ABM","ABD","DC","PD")
+    Variable: c("Age","CreditScore","Veh_Age_Au","Total")
+---
+
+```{r setup, include=FALSE}
+
+library(TDTools)
+library(feather)
+library(gridExtra)
+library(gridBase)
+library(RUOx)
+#Data extraction process
+#Extract data in rds format. The rds format data should have prediction for all the coverages
+#Option on wether to apply Lorenz curve to each variable currently applicable to TOTAL/COVERAGE....
+
+rds.to.feather(i,getwd())
+if(params$Coverage=="BI")
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_BI_Am","Xpo_Ern_BI_Nb","BI_PRED"))
+
+
+if(params$Coverage=="ABM")
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_ABM_Am","Xpo_Ern_ABM_Nb","ABM_PRED"))
+#This report should produce lorenz curve for the entire product based on variable
+  Plot.Chart(DATA,list("ABM_PRED","Clm_ABM_Am","Xpo_Ern_ABM_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("ABM_PRED","Clm_ABM_Am","Xpo_Ern_ABM_Nb"), MODE = "PvC")
+  
+  
+if(params$Coverage=="ABD"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_ABD_Am","Xpo_Ern_ABD_Nb","ABD_PRED"))
+Plot.Chart(DATA,list("ABD_PRED","Clm_ABD_Am","Xpo_Ern_ABD_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("ABD_PRED","Clm_ABD_Am","Xpo_Ern_ABD_Nb"), MODE = "PvC")
+  
+}
+if(params$Coverage=="DC"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_DC_Am","Xpo_Ern_DC_Nb","DC_PRED"))
+Plot.Chart(DATA,list("DC_PRED","Clm_DC_Am","Xpo_Ern_DC_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("DC_PRED","Clm_DC_Am","Xpo_Ern_DC_Nb"), MODE = "PvC")
+  
+}
+if(params$Coverage=="PD"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_PD_Am","Xpo_Ern_PD_Nb","PD_PRED"))
+Plot.Chart(DATA,list("PD_PRED","Clm_PD_Am","Xpo_Ern_PD_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("PD_PRED","Clm_PD_Am","Xpo_Ern_PD_Nb"), MODE = "PvC")
+  
+}
+if(params$Coverage=="COLL"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_COLL_Am","Xpo_Ern_COLL_Nb","COLL_PRED"))
+Plot.Chart(DATA,list("COLL_PRED","Clm_COLL_Am","Xpo_Ern_COLL_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("COLL_PRED","Clm_COLL_Am","Xpo_Ern_COLL_Nb"), MODE = "PvC")
+  
+}
+if(params$Coverage=="COMP"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_COMP_Am","Xpo_Ern_COMP_Nb","COMP_PRED"))
+Plot.Chart(DATA,list("COMP_PRED","Clm_COMP_Am","Xpo_Ern_COMP_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("COMP_PRED","Clm_COMP_Am","Xpo_Ern_COMP_Nb"), MODE = "PvC")
+  
+}
+if(params$Coverage=="UI"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_UI_Am","Xpo_Ern_UI_Nb","UI_PRED"))
+Plot.Chart(DATA,list("UI_PRED","Clm_UI_Am","Xpo_Ern_UI_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("UI_PRED","Clm_UI_Am","Xpo_Ern_UI_Nb"), MODE = "PvC")
+  
+}
+if(params$Coverage=="UM"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_BI_Am","Xpo_Ern_BI_Nb","BI_PRED"))
+Plot.Chart(DATA,list("UM_PRED","Clm_UM_Am","Xpo_Ern_UM_Nb"), MODE = "LR")
+  Plot.Chart(DATA,list("UM_PRED","Clm_UM_Am","Xpo_Ern_UM_Nb"), MODE = "PvC")
+  
+
+}else{
+  #summarize using grepl function to get observed, predicted, exposure for all the coverages....
+  #Figure out what to apply here
+  
+
+}
+
+
+
+
+
+```
+

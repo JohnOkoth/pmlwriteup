@@ -1,0 +1,102 @@
+---
+title: "new"
+output: html_document
+params:
+    File:  c("AgeBound.csv","CreditScoreBound.csv","scoreBound.csv")
+    Coverage: c("COLL","BI","COMP")
+    Variable: c("Age","CreditScore","Veh_Age_Au","Total")
+---
+
+
+
+```{r setup,include=FALSE}
+library(TDtools)
+library(feather)
+library(RUOx)
+
+
+
+```
+
+
+###This section is meant to produce Lorenz curve for each coverage/Total
+```{r setup, include=FALSE}
+library(TDTools)
+library(feather)
+library(gridExtra)
+library(gridBase)
+library(RUOx)
+#Data extraction process
+#Extract data in rds format. The rds format data should have prediction for all the coverages
+#Option on wether to apply Lorenz curve to each variable currently applicable to TOTAL/COVERAGE....
+
+rds.to.feather(i,getwd())
+
+if(params$Coverage=="BI")
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_BI_Am","Xpo_Ern_BI_Nb","BI_PRED"))
+
+
+if(params$Coverage=="ABM")
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_ABM_Am","Xpo_Ern_ABM_Nb","ABM_PRED"))
+#This report should produce lorenz curve for the entire product based on variable
+DATA[,params$variable]
+
+if(params$Coverage=="ABD"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_ABD_Am","Xpo_Ern_ABD_Nb","ABD_PRED"))
+}
+if(params$Coverage=="DC"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_DC_Am","Xpo_Ern_DC_Nb","DC_PRED"))
+}
+if(params$Coverage=="PD"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_PD_Am","Xpo_Ern_PD_Nb","PD_PRED"))
+}
+if(params$Coverage=="COLL"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_COLL_Am","Xpo_Ern_COLL_Nb","COLL_PRED"))
+}
+if(params$Coverage=="COMP"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_COMP_Am","Xpo_Ern_COMP_Nb","COMP_PRED"))
+}
+if(params$Coverage=="UI"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_UI_Am","Xpo_Ern_UI_Nb","UI_PRED"))
+}
+if(params$Coverage=="UM"){
+DATA<-read.feather(i,KEEP = c(params$Variable,"Clm_BI_Am","Xpo_Ern_BI_Nb","BI_PRED"))
+
+}else{
+  #summarize using grepl function to get observed, predicted, exposure for all the coverages....
+  DATA<-read.feather(i,KEEP=C(""))
+  
+  DATA1<-Plot.Lorenz(DATA,list("BI_PRED","Clm_BI_Nb","Xpo_Ern_BI_Nb")) 
+    DATA2<-Plot.Lorenz(DATA,list("ABM_PRED","Clm_ABM_Nb","Xpo_Ern_ABM_Nb")) 
+     DATA3<-Plot.Lorenz(DATA,list("ABD_PRED","Clm_ABD_Nb","Xpo_Ern_ABD_Nb")) 
+      DATA4<-Plot.Lorenz(DATA,list("DC_PRED","Clm_DC_Nb","Xpo_Ern_DC_Nb")) 
+        DATA5<-Plot.Lorenz(DATA,list("PD_PRED","Clm_PD_Nb","Xpo_Ern_PD_Nb")) 
+           DATA6<-Plot.Lorenz(DATA,list("COLL_PRED","Clm_COLL_Nb","Xpo_Ern_COLL_Nb")) 
+              DATA7<-Plot.Lorenz(DATA,list("COMP_PRED","Clm_COMP_Nb","Xpo_Ern_COMP)_Nb")) 
+                  DATA8<-Plot.Lorenz(DATA,list("UI_PRED","Clm_UI_Nb","Xpo_Ern_UI_Nb")) 
+
+           grid.arrange(DATA1,DATA2,DATA3,DATA4,DATA5,DATA6,DATA7,DATA8)
+
+}
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
