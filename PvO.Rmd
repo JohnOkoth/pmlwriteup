@@ -1,126 +1,67 @@
 ---
-title: "test3"
-author: "jp"
-date: "11/8/2016"
+title: "new"
 output: html_document
 params:
-    File:  c("AgeBound.csv","CreditScoreBound.csv","scoreBound.csv")
     Coverage: c("COLL","BI","COMP")
     Variable: c("Age","CreditScore","Veh_Age_Au","Total")
 ---
 
 
-```{r,echo=FALSE}
 
-OF.gr <- function(y, yhat, x, x_weights, cuts.boundaries){
-  library(Hmisc)
-  library(data.table)
-  library(ggplot2)
-  #if (missing(cuts.boundaries)){
-   # cuts.boundaries <- cut2(x,  m=ceiling(length(x)*.05), onlycuts=TRUE)
-  #}
-  
-  var.bkt<-x
-  #var.bkt<-cut2(x,  cuts=cuts.boundaries)
-  var.bkt<-as.factor(var.bkt)
-  
-  Pl.dat<-as.data.table(data.frame(var=var.bkt,observed=y,y_hat1=yhat[,1],y_hat2=yhat[,2],weight=x_weights))
-  setnames(Pl.dat,c("var","observed","Pred","Pred2","weight"))
-  
-  Pl.dat.sum1<-Pl.dat[,lapply(.SD,weighted.mean,na.rm=T,w=weight),by=var,.SDcols=c("observed","Pred","Pred2","weight")]
-  Pl.dat.sum1[,weight:=NULL]
-  Pl.dat.sum2<-Pl.dat[,.(weight=sum(weight,na.rm=T)),by=var]
-  Pl.dat.sum <- merge(as.data.frame(Pl.dat.sum1), as.data.frame(Pl.dat.sum2), by = "var")
-  Pl.dat.sum<-as.data.frame(Pl.dat.sum)
-  Pl.dat.sum<-as.data.frame(Pl.dat.sum)
-  Pl.dat.sum<-Pl.dat.sum[order(Pl.dat.sum$Pred),]
-  Pl.dat.sum<-melt(Pl.dat.sum,id="var")
-  
-  Pl.dat.sum[Pl.dat.sum$variable=="weight","value"] = Pl.dat.sum[Pl.dat.sum$variable=="weight","value"]/
-    max(Pl.dat.sum[Pl.dat.sum$variable=="weight","value"])*
-    median(Pl.dat.sum[Pl.dat.sum$variable!="weight","value"])
-  
-  p0 <- ggplot(Pl.dat.sum, 
-               aes(x = var, y = value,group=variable,color=variable,shape=variable)) +
-    
-    geom_bar(data= Pl.dat.sum[Pl.dat.sum$variable == "weight",],stat="identity",alpha=.75,fill="gold2",colour=NA,show.legend=FALSE)+
-    geom_line(data= Pl.dat.sum[!(Pl.dat.sum$variable %in% c("weight")),], size=1) + 
-    geom_point(data= Pl.dat.sum[!(Pl.dat.sum$variable %in% c("weight")),], aes(shape=variable,size=.1))  +
-    
-    theme(axis.text.x = element_text(angle = 45, hjust = 1,size=12),
-          axis.text.y = element_text(size=12),
-          legend.position="bottom",
-          legend.title=element_blank(),
-          legend.text = element_text(size=12))
-  
-  return(list(g.proof=p0, table=Pl.dat.sum))
-}
+```{r setup,include=FALSE}
+library(TDtools)
+library(feather)
+library(RUOx)
 
 
-BucketAggr<-function(data,Variable){
-  library(dplyr)
-  library(data.table)
-  library(Hmisc)
-  library(ggplot2)
 
-  
-  columns<-as.character(c(Variable,"Pol_Acc_Yr_Dt"))
-  
-  #Getting the vector for variables to be aggregated by.
-  #Aggregating data experience by respective variable.
-  
-  Experience1<-data.table(data)[,sapply(.SD,function(x) list(Observed=weighted.mean(Observed,w=Exposure),
-                                                             LossCost=weighted.mean(LossCost,w=Exposure),
-                                                             Pred=weighted.mean(Pred,w=Exposure),
-                                                             LossRate2=weighted.mean(LossRate2,w=Exposure),
-                                                             SumLoss=weighted.mean(SumLoss,w=Exposure),
-                                                             SumClaim=weighted.mean(SumClaim,w=Exposure),
-                                                             Frequency=weighted.mean(Frequency,w=Exposure),
-                                                             Severity=weighted.mean(Severity,w=Exposure),
-                                                             Exposure=weighted.mean(Exposure,w=Exposure),
-                                                             SumExpo=sum(Exposure),
-                                                             Weight=weighted.mean(Weight,w=Exposure)))[1:11],by=columns]
-  
-  #Adding column names.
-  setnames(Experience1,c(Variable,"Pol_Acc_Yr_Dt","Observed","LossCost","Pred","LossRate2","SumLoss","SumClaim",
-                         "Frequency","Severity","Exposure","SumExpo","Weight"))
-  #Adding new columns
-  #Experience1<-mutate(Experience1,LossRate=SumLoss/Exposure,Frequency=SumClaim/Exposure,Severity=SumLoss/SumClaim)
-  
-  #Scaling LossRate to the predicted scale
-  #Experience1$LossRate2<-as.numeric((sum(Experience1$Pred)*Experience1$LossRate)/sum(Experience1$LossRate))
-  
-  #Converting the data back to a data frame
-  Experience1<-as.data.frame(Experience1)
-  return(Experience1)
-  gc()
-}
-  
 ```
 
 
-###Generate the report
-```{r,echo=FALSE}
-library(data.table)
-if (params$Coverage=="BI"){
-setwd("/TARIF/Pricing Innovation/2016/MCG-05-JPO/ONAU_RSP/Monitoring_Project/Saved_Data/BI")
-  test<-fread(params$File, data.table = FALSE)
-  test<-BucketAggr(test,params$Variable)
-OF.gr(test$LossRate2,test[,c("Pred","LossCost")],test[,params$Variable],test$Exposure)
+###This section generates report for Pvo
+```{r setup, include=FALSE}
+library(TDTools)
+library(feather)
+library(gridExtra)
+library(gridBase)
+library(RUOx)
 
+#Function is to be applied from TDTools package under plot.chart
+dt.LoadFromFeather <- function(DATA,NAMES){
+  ## if a feather path is put in, load from feather
+  library(feather)
+  library(TDTools)
+  if(is.character(DATA)){
+    DT.paths <- DATA
+    DATA <- data.frame()
+    for(i in DT.paths){
+      DATA <- rbind(DATA,
+                    read.feather(i,
+                                 KEEP = as.vector(unlist(NAMES))))
+    }
+  }
+  return(DATA)
+}
+#Data extraction process
+#Extract data in rds format. The rds format data should have prediction for all the coverages
+#Option on wether to apply Lorenz curve to each variable currently applicable to TOTAL/COVERAGE....
+
+#Plotting Lorenz Curve
+OBSERVED<-paste("Clm",params$Coverage,"Am",sep="_")
+EXPOSURE<-paste("Xpo","Ern",params$Coverage,"Nb",sep="_")
+MODEL<-paste(params$Coverage,"PRED",sep="_")
+
+if((params$variable)="Total"){
+  DATA<-dt.LoadFromFeather("E:DATA/Feather_Pred",c(OBSERVED,EXPOSURE,MODEL))
+  Plot.Chart(PATH_IN,list(MODELS=MODEL,OBSERVED=OBSERVED,EXPOSURE=EXPOSURE))
+  
 }else{
-  setwd("/TARIF/Pricing Innovation/2016/MCG-05-JPO/ONAU_RSP/Monitoring_Project/Saved_Data/COLL")
-   test<-fread(params$File, data.table = FALSE)
-  test<-BucketAggr(test,params$Variable)
-OF.gr(test$LossRate2,test[,c("Pred","LossCost")],test[,params$Variable],test$Exposure)
+  
+  DATA<-dt.LoadFromFeather("E:DATA/Feather_Pred",c(params$variable,OBSERVED,EXPOSURE,MODEL))
+  Plot.Chart(PATH_IN,list(MODELS=MODEL,OBSERVED=OBSERVED,EXPOSURE=EXPOSURE))
 }
 
-setwd("/TARIF/Pricing Innovation/2016/MCG-05-JPO/ONAU_RSP/Monitoring_Project/Saved_Data")
-#myplot<-params$File
-#test<-read.csv(myplot)
 
 
 ```
-
-## Including Plots
 
