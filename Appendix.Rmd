@@ -1,0 +1,197 @@
+---
+title: Appendix
+author: Pricing Innovation
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  pdf_document: 
+    fig_caption: false
+    number_sections: true
+header-includes:
+  - \usepackage[T1]{fontenc}
+  - \usepackage{lmodern}
+  - \usepackage{hyperref}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \lhead{\includegraphics[width=1cm]{TDlogo.png}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\pagenumbering{roman}
+
+What follows is not a guideline of how to asses a model but how to read the report and how each piece is calculated. For the model monitoring guideline please refer to the separate document. The purpose of this appendix is to cover the mathematics of each piece of the report and its purpose. It is important to note that this report is produced one variable at a time (I.e. Uni-variate) and the effect of other variables are not cancelled out. Due to this, it is not possible to directly infer that mispredictions are due to which variables. This report can show that there are problems with the model but not what the problems are with any quantifiable certainty.
+
+# Data
+
+Here we'll use the \emph{Ontario Auto RSP Collision Model} for examples and we'll be looking at the Driver Age variable for the most part.
+
+## Data Assumptions
+
+Two sets of data is used to produce the reports:
+
+  1. The data on which the model will be monitored (Referred to as Monitoring Data)
+  #. The data that will be used to produce an estimate for the data variance used in the deviation charts (Referred to as Variance Data)
+  
+Typically the set of data used for the variance is a larger more credible and does not need to be updated. For the examples below we used Ontario Auto accident year 2015 data as monitoring data and accident years 2012 to 2014 for variance estimation.
+
+In addition to the data used, a couple of other assumptions are made:
+
+  1. Any observation from either data that has a missing prediction is filtered
+  #. Any observation from either data that has a prediction of 0 is filtered \footnote{This is the default method due to the way model indicators work, care must be taken specially if it's possible for a prediction to be 0 due to rounding. The \% filtered should be validated for reasonability.}
+  
+Below is an example of the report showing the number of lines that have been filtered:
+
+```{r data, echo=FALSE, message=FALSE, warning=FALSE}
+X<-TDTools::Plot.Data(DATA = c("/DATA/Raw_Data/Feather_Files/ONAU2015_ol_RSP.ftr"),
+                      VARIANCE.DATA = c("/DATA/Raw_Data/Feather_Files/ONAU2012_ol_RSP.ftr",
+                                        "/DATA/Raw_Data/Feather_Files/ONAU2013_ol_RSP.ftr",
+                                        "/DATA/Raw_Data/Feather_Files/ONAU2014_ol_RSP.ftr"),
+                      NAMES = list(MODELS    = "COLL_PRED",
+                                   OBSERVED  = "Clm_COL_Am",
+                                   CLM.COUNT = "Clm_COL_Nb",
+                                   EXPOSURE  = "Xpo_Ern_COL_Nb",
+                                   VARIABLE  = "Dri_Age_Nb"),
+                      MODE = "ALL",
+                      EVAL.VARIANCE = T,
+                      SPLIT.VARIANCE = F,
+                      N.BKTS = 20)
+
+```
+
+Note that the data report is generated for every single variable since each variable is ran independently. However, for a given model this report should be identical for every variable. If this is not a case, it should be investigated with \emph{Pricing Innovation} team as it may point to a bug.
+
+\newpage
+
+## Rebasing & Earning (Recalibration)  \label{sec:rebase}
+
+The global mean prediction of the model is not monitored in this report, therefore the base level of the model predicted is adjusted to that of the data. Also the predictions are for a complete weight (e.g. exposure) of $1$, therefore the prediction is multiplied by the observed weight ($w_i$) to bring it to the same level as the observation. Note that each observation $y_i$ has a observed weight of $w_i$ (E.g. the exposure of the risk). The prediction $\hat{y}_i$ is re-calibrated to $\hat{y}^\ast_i$ using the following:
+
+\begin{align}
+\hat{y}^\ast_i = \hat{y}_i w_i \dfrac{\sum_{i=1}^n y_i }{\sum_{i=1}^n \hat{y}_i w_i }
+\end{align}
+
+
+## Variance Estimation \label{sec:variance}
+
+The variance estimated here is only used in the Deviation Chart (Section \ref{sec:deviation}). Also note that as of now, only pure premium variances are supported. It is calculated using the Variance Data in the following manner:
+
+  1. The Variance Data is split into the same grouping as used in the Deviation Chart with respect to the desired variable (E.g. Driver Age)
+  #. For each grouping $G_k$ calculate the estimated Poisson-Gamma variance under the independence assumption:
+    \begin{align}
+    =\hat{\mu}_{X,k} &=\dfrac{\text{Sum of severity in}~ G_k}{\text{\# of observations in}~ G_k} = \dfrac{\sum_{i \in \{G_k~\&~\hat{n}_i > 0\}} \hat{x}_i}{ \sum_{i \in \{G_k~\&~\hat{n}_i > 0\}} 1 } \\
+    \hat{\sigma}^2_{X,k} &= \dfrac{\text{Sum of error squared in}~G_k}{\text{\# of observations in}~G_k -1}= \dfrac{\sum_{i \in \{G_k~\&~\hat{n}_i > 0\}} (\hat{x}_i - \hat{\mu}_{X,k})^2}
+                                  { \left[\sum_{i \in \{G_k~\&~\hat{n}_i > 0\}}  1 \right] - 1  } \\
+    \hat{\mu}_{N,k} &=\dfrac{\text{\# of claims in}~G_k}{\text{Sum of weights in}~G_k} = \dfrac{\sum_{i \in G_k} \hat{n}_i }{\sum_{i \in G_k} w_i} \\
+    \hat{\sigma}^2_{N,k} &= \hat{\mu}_N,~~~~~~~~~~~~~~~~~~~\text{(Based on the Poisson frequency assumption)} \\
+    \hat{\sigma}^2_{Y,k} &= \hat{\sigma}^2_{X,k}\hat{\sigma}^2_{N,k} + \hat{\sigma}^2_{X,k}\hat{\mu}_{N,k}^2 + \hat{\sigma}^2_{N,k}\hat{\mu}_{X,k}^2
+    \end{align}
+    where $X$ is the severity random variable and $N$ is the frequency random variable. Note that the Pure Premium random variable is given by $Y = XN$.
+
+\newpage
+
+# Charts
+
+## Predicted vs. Observed Chart
+
+The purpose of this chart is to show how closely the fitted follows the observed pattern for the given variable. In the ideal case the patterns should follow fairly closely, however depending on the variation within the data some departures may be normal. The general steps to produce the Predicted vs. Observed Chart is as follows:
+
+  1. The Monitoring Data (Section \ref{sec:rebase}) is split into equally weighted groups (where possible) with respect to the desired variable (E.g. Driver Age)
+  #. For each group $G_k$ (I.e. bucket) the observed mean $\mu_k$ and the predicted mean $\hat{\mu}_k$ is calculated as follows:
+    \begin{align}
+    \mu_k &= \text{Average Observed} = \dfrac{\sum_{i \in G_k } y_i }{\sum_{i \in G_k } w_i } \\
+    \hat{\mu}_k &= \text{Average Fitted} = \dfrac{\sum_{i \in G_k } \hat{y}^\ast_i }{\sum_{i \in G_k } w_i } 
+    \end{align}
+    Note that for the average fitted, the re-calibrated $\hat{y}^\ast_i$ from Section \ref{sec:rebase} is used.
+  #. Finally for each grouping $G_k$ both points are plotted, creating the \emph{predicted} and the \emph{observed} curves with respect to a variable quantile.
+
+![](`r TDTools::PvO.Chart(X, AS.PDF = T)`)
+
+\newpage
+
+## Discrepancy Chart \label{sec:discrepancy}
+
+The discrepancy chart shows to what degree the mean of the predicted is off of the mean of the observed. A discrepancy of $1$ means that the means are equal (E.g. in the case off Pure Premium models this can be seen as Loss Ratio). Something else to look for, particularly in ordered variables, is whether there is a pattern that follows. The general steps are as follows:
+
+  1. The Monitoring Data (Section \ref{sec:rebase}) is split into equally weighted groups $G_k$ (where possible) with respect to the desired variable (E.g. Driver Age)
+  #. For each group $G_k$ (I.e. bucket) the discrepancy $\Delta_k$ is calculated as follows:
+    \begin{align}
+    \text{Discrepancy} = \Delta_k = \dfrac{\text{Sum of Observed in}~G_k}{\text{Sum of Fitted in}~G_k} = \dfrac{\sum_{i \in G_k } y_i }{\sum_{i \in G_k } \hat{y}^\ast_i } 
+    \end{align}
+    Note that for the average fitted, the re-calibrated $\hat{y}^\ast_i$ from Section \ref{sec:rebase} is used.
+  #. Finally for each grouping $G_k$, $\Delta_k$ is plotted to form the \emph{discrepancy} curve.
+
+
+![](`r TDTools::Discrepancy.Chart(X, AS.PDF = T)`)
+
+\newpage
+
+## Deviation Chart \label{sec:deviation}
+
+The purpose of the deviation chart is to show the distribution of deviations from the observed mean with respect to a particular variable. It is also used to show if the deviation is within a reasonable range of the typical data variation. The deviation curve is produced with the following steps:
+
+  1. Discrepancy $\Delta_k$ for all groups $G_k$ is calculated as in Section \ref{sec:discrepancy}
+  #. Absolute error $\delta_k = |\Delta_k -1 |$ is then calculated for each group $G_k$
+  #. The groupings $G_k$ are ordered such the $\delta_{k}$ are in decreasing order (I.e. $\delta_{k} > \delta_{k+1}$) \label{step:s}
+  #. Then the cumulative exposure is calculated with respect to this new ordering:
+    \begin{align}
+    \text{Cumulative weight for}~G_k = W_k = \sum_{j=1}^k \sum_{i \in G_j} w_i
+    \end{align}
+  #. Finally for each grouping $G_k$, the coordinates $(W_k, \delta_k)$ are plotted to form the \emph{deviation} curve. \label{step:e}
+  
+For example the graph below can be looked at in the following way:
+
+  - The point at $(25\%, 12.5\%)$ can be interpreted as: \emph{less than} 25\% of the exposure has a an error (I.e. deviation) of \emph{greater than or equal} to 12.5\% with respect to the given Driver Age grouping. (I.e: $\Pr(\delta \ge 0.125 ) < 0.25$)
+  - The point at $(25\%, 7.5\%)$ can be interpreted as: \emph{greater than or equal} to 75% of the exposure has an error (I.e. deviation) of \emph{less than or equal} to 7.5\% with respect to the given Driver Age grouping. (I.e: $\Pr(\delta \le 0.075 ) \ge 0.75$)
+
+In addition to the deviation curve, a $2\sigma$ and a $3\sigma$ threshold area is drawn. These thresholds are calculated using the variance calculated in Section \ref{sec:variance}. As stated in Section \ref{sec:rebase}, the global mean of the prediction is always re-calibrated with that of the data. Due to this, the portion of the variance related to the global mean variance of the data needs to be removed. Due to the re-calibration, there is always a certain portion of the exposure that has a near 0 error (I.e. deviation). To account for this we find the grouping $G_k$ that has the smallest variance and denote it as $G_\ast$. Then to calculate the thresholds we do as follows:
+
+  1. We calculate the sample standard deviation for each grouping $G_k$ corrected for the re-calibration
+    \begin{align}
+     \text{Sample standard deviation for}~G_k=s_{Y,k} = \dfrac{\sqrt{ \hat{\sigma}^2_{Y,k} - \hat{\sigma}^2_{Y,\ast} }}{ \sum_{i \in G_k} w_i  }
+    \end{align}
+    Note that the variance estimate ($\hat{\sigma}^2$) is estimated using the larger variance data (See Section \ref{sec:variance}), however the sample variance ($s^2$) is estimated using the weights from the monitoring data to account for sample size.
+  #. Then we calculate the 2 and 3 standard deviation error thresholds for each grouping $G_k$
+    \begin{align}
+     2\sigma~\text{threshold for}~G_k=\delta^{(2)}_k &= \dfrac{2 s_{Y,k}}{ \sum_{i \in G_k} y_i } \\
+     3\sigma~\text{threshold for}~G_k=\delta^{(3)}_k &= \dfrac{3 s_{Y,k}}{ \sum_{i \in G_k} y_i } 
+    \end{align}
+  #. Then we follow steps \ref{step:s} to \ref{step:e} from the deviation curve calculation steps above with $\delta^{(2)}_k$ \& $\delta^{(3)}_k$.
+
+The interpretation here is that if the deviation curve finds itself in the threshold area, then the deviation is not within the typical variation found in the data and may need to be looked at further.
+
+![](`r TDTools::Deviation.Chart(X, AS.PDF = T)`)
+
+\newpage
+
+## Lorenz/Gini Chart
+
+The Lorenz curve and it's corresponding Gini index is used to give a sense of how well the prediction's ranking correspond to the actual ranking in the data. It can also give an idea as to the overall lift of the model. Essentially the Lorenz curve show that $y\%$ of the observed (e.g. losses) are explained by $x\%$ of the exposures. The Lorenz curve is produced as follows:
+
+  1. Sort the observed $y_i$ with respect to $\hat{y}_i$ ordered in an increasing order
+  #. Accumulate the proportion of exposure and the proportion of observed value with respect to this order
+    \begin{align}
+      \text{Cumulative Weight}=W_i &= \dfrac{\sum_{j=1}^i w_j}{ \sum_{j=1}^n w_j } \\
+      \text{Cumulative Observed}=Y_i &= \dfrac{\sum_{j=1}^i y_j}{ \sum_{j=1}^n y_j }
+    \end{align}
+    
+The Gini is an index that says how disparate the exposures are, that is a higher Gini means that most of the observed is explained by a very small portion of the exposures. When used for model assessment, the Gini of the prediction should be as close as possible to the Observed Gini index. The Gini index is calculated as follows:
+
+\begin{align}
+\operatorname{Gini} = \sum_{i=1}^{n-1} Y_{i+1}W_{i} - \sum_{i=1}^{n-1} W_{i}Y_{i+1}
+\end{align}
+
+ 
+![](`r TDTools::Plot.Lorenz(DATA = c("/DATA/Raw_Data/Feather_Files/ONAU2015_ol_RSP.ftr"),
+                            NAMES = list(MODELS   = "COLL_PRED",
+                                          OBSERVED = "Clm_COL_Am",
+                                          EXPOSURE = "Xpo_Ern_COL_Nb"),
+                            N.BKTS = 100,
+                            AS.PDF = T)`)
+
+
+
+
+
+

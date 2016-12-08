@@ -1,0 +1,83 @@
+---
+output:
+  pdf_document:
+    fig_caption: false
+    number_sections: true
+params:
+  data: !r as.character("")
+  variance.data: !r as.character("")
+  variable: !r as.character("")
+  exposure: !r as.character("")
+  model: !r as.character("")
+  observed: !r as.character("")
+  clm.count: !r as.character("")
+  counter: !r as.numeric(0)
+  sec.counter: !r as.numeric(1)
+  page.counter: !r as.numeric(1)
+header-includes:
+  - \usepackage[T1]{fontenc}
+  - \usepackage{lmodern}
+  - \usepackage{hyperref}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyfoot[C]{CONFIDENTIAL}
+  - \fancyfoot[LE,RO]{\thepage}
+  - \lhead{\includegraphics[width=1cm]{TDlogo.png}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\setcounter{page}{`r params$page.counter`}
+\setcounter{section}{`r params$sec.counter`}
+
+# `r gsub('_',' ',params$variable)`
+
+Date Produced: `r format(Sys.time(), '%d %B, %Y')`
+
+```{r data, echo=FALSE, message=FALSE, warning=FALSE}
+X<-TDTools::Plot.Data(DATA = params$data,
+                      VARIANCE.DATA = params$data,
+                      NAMES = list(MODELS    = params$model,
+                                   OBSERVED  = params$observed,
+                                   CLM.COUNT = params$clm.count,
+                                   EXPOSURE  = params$exposure,
+                                   VARIABLE  = params$variable),
+                      MODE = "ALL",
+                      EVAL.VARIANCE = T,
+                      SPLIT.VARIANCE = F,
+                      N.BKTS = 20)
+
+```
+
+
+
+## Predicted vs. Observed Chart
+
+![](`r TDTools::PvO.Chart(X, AS.PDF = T)`)
+\begin{center}
+\begin{Form}
+\TextField[name=`r paste0("comment", params$counter)`, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+
+## Discrepancy Chart
+
+![](`r TDTools::Discrepancy.Chart(X, AS.PDF = T)`)
+\begin{center}
+\begin{Form}
+\TextField[name=`r paste0("comment", params$counter + 1)`, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+
+
+## Deviation (Error) Chart
+
+![](`r TDTools::Deviation.Chart(X,AS.PDF =T)`)
+\begin{center}
+\begin{Form}
+\TextField[name=`r paste0("comment", params$counter + 2)`, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+

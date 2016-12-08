@@ -1,0 +1,234 @@
+---
+output:
+  pdf_document: 
+    fig_caption: false
+    number_sections: true
+params:
+  report.name: !r as.character("")
+  reviewer: !r as.character("")
+  approver: !r as.character("")
+  data: !r as.character("")
+  variance.data: !r as.character("")
+  exposure: !r as.character("")
+  model: !r as.character("")
+  observed: !r as.character("")
+  clm.count: !r as.character("")
+header-includes:
+  - \usepackage[T1]{fontenc}
+  - \usepackage{lmodern}
+  - \usepackage{hyperref}
+  - \usepackage{fancyhdr}
+  - \pagestyle{fancy}
+  - \fancyfoot[C]{CONFIDENTIAL}
+  - \fancyfoot[LE,RO]{\thepage}
+  - \lhead{\includegraphics[width=1cm]{TDlogo.png}}
+---
+
+
+
+\begin{titlepage}
+
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}} 
+
+\center % Center everything on the page
+
+%----------------------------------------------------------------------------------------
+%   HEADING SECTIONS
+%----------------------------------------------------------------------------------------
+
+\textsc{\LARGE TD Insurance}\\[1.5cm] 
+\textsc{\Large Model Monitoring}\\[0.5cm] 
+\textsc{\large CONFIDENTIAL}\\[0.5cm] 
+
+%----------------------------------------------------------------------------------------
+%   TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\HRule \\[0.4cm]
+{ \huge \bfseries `r gsub('_',' ',params$report.name)`}\\[0.4cm] 
+\HRule \\[1.5cm]
+
+%----------------------------------------------------------------------------------------
+%   AUTHOR SECTION
+%----------------------------------------------------------------------------------------
+
+\begin{minipage}{0.4\textwidth}
+\begin{flushleft} \large
+\emph{Reviewer:}\\
+`r params$reviewer`
+\end{flushleft}
+\end{minipage}
+~
+\begin{minipage}{0.4\textwidth}
+\begin{flushright} \large
+\emph{Approver:} \\
+`r params$approver`
+\end{flushright}
+\end{minipage}\\[2cm]
+
+
+
+%----------------------------------------------------------------------------------------
+%   DATE SECTION
+%----------------------------------------------------------------------------------------
+
+{\large \today}\\[2cm] 
+
+%----------------------------------------------------------------------------------------
+%   LOGO SECTION
+%----------------------------------------------------------------------------------------
+
+\includegraphics[width=6cm,height=6cm]{TDlogo.png}\\[1cm] 
+
+%----------------------------------------------------------------------------------------
+
+\vfill % Fill the rest of the page with whitespace
+
+\end{titlepage}
+
+
+
+%----------------------------------------------------------------------------------------
+%   MAIN REPORT SECTION
+%----------------------------------------------------------------------------------------
+
+
+\renewcommand*{\LayoutTextField}[2]{\makebox[10em][l]{#1: }%
+  \raisebox{\baselineskip}{\raisebox{-\height}{#2}}}
+
+
+# Data 
+
+## Description of Data
+\begin{Form}
+\TextField[name=MonitoringData, multiline=true, align=0, width=400pt, height=3\baselineskip]{Monitoring Data}\vskip1ex
+\TextField[name=VarianceData,   multiline=true, align=0, width=400pt, height=3\baselineskip]{Variance Data}
+\end{Form}
+
+\renewcommand*{\LayoutTextField}[2]{\makebox[0em][l]{#1: }%
+  \raisebox{\baselineskip}{\raisebox{-\height}{#2}}}
+
+## Data filtering
+
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE}
+X<-TDTools::Plot.Data(DATA = params$data,
+                      VARIANCE.DATA = params$variance.data,
+                      NAMES = list(MODELS    = params$model,
+                                   OBSERVED  = params$observed,
+                                   CLM.COUNT = params$clm.count,
+                                   EXPOSURE  = params$exposure,
+                                   VARIABLE  = params$model),
+                      MODE = "ALL",
+                      EVAL.VARIANCE = T,
+                      SPLIT.VARIANCE = F,
+                      N.BKTS = 20)
+```
+
+Filtering comments
+\begin{center}
+\begin{Form}
+\TextField[name=FilterComments, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+
+\newpage
+
+# Model Overview
+
+```{r,data,echo=FALSE,message=FALSE}
+
+options(xtable.comment = FALSE)
+
+Y<-data.frame(TDTools::Deviation.Chart(X,DATA.ONLY = TRUE))
+colnames(Y)[2:3]<-c("%Error","Exposure")
+Y$Percentile<-as.numeric(Y$N/20)
+
+Y<- Y[Y$Percentile %in% c(0.05,0.5,0.95), 
+      c("Exposure","%Error","Error_2SD","Error_3SD")]
+
+Y$Broken_2SD = ""
+Y$Broken_2SD[Y$`%Error` > Y$Error_2SD] = "X"
+Y$Broken_3SD = ""
+Y$Broken_3SD[Y$`%Error` > Y$Error_3SD] = "X"
+
+Y$Error_2SD = NULL
+Y$Error_3SD = NULL
+
+Y$`%Error` = paste0(formatC(100 * Y$`%Error`, format = "f", digits = 2), "%")
+
+colnames(Y) <- c("Exposure", "% Error", "2sd Threshold Broken", "3sd Threshold Broken")
+
+rownames(Y) <- NULL
+
+TBL <- xtable::xtable(Y, digits = 2, align = rep("c",5))
+
+```
+
+`r TBL`
+
+Reviewer comments \& conclusions
+\begin{center}
+\begin{Form}
+\TextField[name=ModelComments, multiline=true, align=0, width=400pt, height=15\baselineskip]{ }
+\end{Form}
+\end{center}
+
+
+
+
+\newpage
+
+
+# Model Charts
+
+##  Predicted vs. Observed Quantile Chart
+
+![](`r TDTools::PvO.Chart(X,AS.PDF = T)`)
+\begin{center}
+\begin{Form}
+\TextField[name=PvOComment, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+
+
+\newpage
+## Discrepancy Chart
+
+![](`r TDTools::Discrepancy.Chart(X, AS.PDF = T)`)
+\begin{center}
+\begin{Form}
+\TextField[name=DiscComment, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+
+
+\newpage
+## Deviation (Error) Chart
+
+![](`r TDTools::Deviation.Chart(X,AS.PDF =T)`)
+\begin{center}
+\begin{Form}
+\TextField[name=DevComment, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+
+\newpage
+## Lorenz Curve
+
+![](`r TDTools::Plot.Lorenz(DATA = params$data,
+                     NAMES = list(MODELS   = params$model,
+                                  OBSERVED = params$observed,
+                                  EXPOSURE = params$exposure),
+                     N.BKTS = 100,
+                     DATA.ONLY = F,
+                     AS.PDF=T)`)
+
+\begin{center}          
+\begin{Form}
+\TextField[name=LorenzComment, multiline=true, align=0, width=400pt, height=6\baselineskip]{ }
+\end{Form}
+\end{center}
+
+
+
+
