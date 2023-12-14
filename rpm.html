@@ -94,9 +94,10 @@ library(coefplot)</code></pre>
 </div>
 </div>
 <div id="number-of-claims-modeling" class="section level1">
-<h1>Number of Claims Modeling</h1>
-<p>I shall first identify the significance of the variables and covariates by using the aov and glm function respectively.</p>
-<p>The aov in R is a replica of type 3 error test in SAS. It shows the significance of the variables under the F test. A three star on the respective variables indicates that the variable is highly significant. The significance code is shown on the output when the aov summary is runned.</p>
+<h1>Data Modeling</h1>
+<h2>Number of Claims Modeling and Analysis</h2>
+<p>I first evaluated the significance of variables using AOV and GLM. AOV, analogous to SAS's type 3 error test, determines variable significance under the F-test. </p>
+<p>A three-star rating in the output indicates high significance. The GLM package was then employed to fit the data to a Poisson distribution.</p>
 <pre class="r"><code>Numtype3&lt;-aov(NumClaims~Vehicle_Use+Age, data=ACollison)
 summary(Numtype3)</code></pre>
 <pre><code>##             Df Sum Sq Mean Sq F value   Pr(&gt;F)    
@@ -105,7 +106,7 @@ summary(Numtype3)</code></pre>
 ## Residuals   21 309714   14748                     
 ## ---
 ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
-<p>Modeling the data with the glm package. The data will be fitted with the poisson distribution. The summmary output for the model will show the significance of the respective covariates with the reference variable. For this case, the reference variables for Vehicle Use and Age are <strong>Vehicle_useBusiness</strong> and <strong>Age17-20</strong> respectively.</p>
+<p>The summary of this model highlights the significance of covariates with respect to the reference variables, which in this case are 'Vehicle_useBusiness' and 'Age17-20'.</p>
 <pre class="r"><code>modCount &lt;- glm(NumClaims ~ Vehicle_Use + Age, offset(log(Exposure)), data = ACollison, 
     family = poisson(link = &quot;log&quot;))
 summary(modCount)</code></pre>
@@ -142,8 +143,8 @@ summary(modCount)</code></pre>
 ## 
 ## Number of Fisher Scoring iterations: 4</code></pre>
 <div id="model-visualization" class="section level3">
-<h3>Model Visualization</h3>
-<p>The plot below will check for the model randomness by ploting the fitted value and residuals.The data points are random with further improvements that need to be done by adding more data points</p>
+<h2>Model Visualization</h2>
+<p>The model's randomness was checked by plotting fitted values against residuals. The random distribution of data points suggests the model's adequacy, although further improvements are possible with additional data.</p>
 <pre class="r"><code>#Checking for randomness in Number of Claim.
 g&lt;-ggplot(aes(x=.fitted, y=.resid), data=modCount)+
             geom_point()+geom_hline(yintercept=0)+
@@ -157,8 +158,8 @@ print(g)</code></pre>
 </div>
 </div>
 <div id="severity-modeling." class="section level1">
-<h1>Severity Modeling.</h1>
-<p>I will apply the same modeling process for Number of Claims to severity. The only difference is that, the distribution used under the glm function will be gamma.</p>
+<h2>Severity Modeling.</h2>
+<p>Similar to the approach for Number of Claims, Severity was modeled using GLM with a Gamma distribution. The analysis revealed that Vehicle_Use significantly influences the response variable more than Age. Some covariates, appearing insignificant, may be either eliminated or merged through further engineering for optimized pricing strategies.</p>
 <p>The Vehicle_Use variable is highly significant to the response variable than the Age variable.</p>
 <pre class="r"><code>Sevtype3&lt;-aov(Severity~Vehicle_Use+Age, data=ACollison)
 summary(Sevtype3)</code></pre>
